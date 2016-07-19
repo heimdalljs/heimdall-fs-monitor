@@ -97,8 +97,9 @@ FSMonitor.prototype._attach = function() {
 
 FSMonitor.prototype._detach = function() {
   for (var member in fs) {
-    if (typeof old === 'function') {
-      fs[member].__restore();
+    var maybeFunction = fs[member];
+    if (typeof maybeFunction === 'function' && typeof maybeFunction.__restore === 'function') {
+      maybeFunction.__restore();
     }
   }
 };
