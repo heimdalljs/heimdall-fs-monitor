@@ -9,7 +9,6 @@ function FSMonitor() {
 }
 
 FSMonitor.prototype.start = function() {
-  debugger;
   this.state = 'active';
   this._attach();
 };
