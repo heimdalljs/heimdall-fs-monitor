@@ -1,10 +1,14 @@
 {
-  "name": "heimdall-fs-monitor",
+  "name": "heimdalljs-fs-monitor",
   "version": "0.0.1",
   "description": "fs operation monitoring for heimdalljs",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stefanpenner/heimdalljs-fs-monitor.git"
   },
   "author": "",
   "license": "ISC",
