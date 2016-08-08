@@ -1,6 +1,6 @@
 {
   "name": "heimdalljs-fs-monitor",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "fs operation monitoring for heimdalljs",
   "main": "index.js",
   "scripts": {
@@ -8,11 +8,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/stefanpenner/heimdalljs-fs-monitor.git"
+    "url": "git+https://github.com/stefanpenner/heimdall-fs-monitor.git"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "heimdalljs": "^0.1.2"
+    "heimdalljs": "^0.1.4"
   }
 }
