@@ -13,6 +13,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "heimdalljs": "^0.1.4"
+    "heimdalljs": "^0.2.0"
   }
 }
