@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/stefanpenner/heimdall-fs-monitor.git"
+    "url": "git+https://github.com/heimdalljs/heimdall-fs-monitor.git"
   },
   "author": "",
   "license": "ISC",
