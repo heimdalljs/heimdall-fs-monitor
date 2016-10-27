@@ -79,7 +79,12 @@ FSMonitor.prototype._attach = function() {
         fs[member] = (function(old, member) {
           return function() {
             if (monitor.shouldMeasure()) {
-              return monitor._measure(member, old, fs, arguments);
+              var args = new Array(arguments.length);
+              for (var i = 0; i < arguments.length; i++) {
+                args[i] = arguments[i];
+              }
+              
+              return monitor._measure(member, old, fs, args);
             } else {
               return old.apply(fs, arguments);
             }
