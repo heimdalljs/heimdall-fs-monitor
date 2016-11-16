@@ -4,18 +4,19 @@ var heimdall = require('heimdalljs');
 module.exports = FSMonitor;
 
 // It is possible for this module to be evaluated more than once in the same
-// heimdall session. In that case, we need to guard against double-couting by
+// heimdall session. In that case, we need to guard against double-counting by
 // making other instances of FSMonitor inert.
-var isEnabled = false;
+var isMonitorRegistrar = false;
+var isFirstInstance = true;
 
 function FSMonitor() {
   this.state = 'idle';
   this.blacklist = ['createReadStream', 'createWriteStream', 'ReadStream', 'WriteStream'];
-  this._isEnabled = isEnabled;
+  this._isEnabled = isMonitorRegistrar && isFirstInstance;
 
   // Flip this to false because we want other instances for the same heimdall
   // session to be inert.
-  isEnabled = false;
+  isFirstInstance = false;
 }
 
 FSMonitor.prototype.start = function() {
@@ -32,20 +33,14 @@ FSMonitor.prototype.stop = function() {
   }
 };
 
-
 FSMonitor.prototype.shouldMeasure = function() {
   return this.state === 'active';
 };
 
-var m;
-
 if (!heimdall.hasMonitor('fs')) {
-  m = heimdall.registerMonitor('fs', function FSSchema() {
+  heimdall.registerMonitor('fs', function FSSchema() {});
 
-  });
-
-  // This gets flipped to false when instances of FSMonitor are created.
-  isEnabled = true;
+  isMonitorRegistrar = true;
 }
 
 function Metric() {
