@@ -1,6 +1,7 @@
 'use strict';
 var fs = require('fs');
 var heimdall = require('heimdalljs');
+var logger = require('heimdalljs-logger')('heimdalljs-fs-monitor');
 module.exports = FSMonitor;
 
 // It is possible for this module to be evaluated more than once in the same
@@ -23,6 +24,10 @@ FSMonitor.prototype.start = function() {
   if (this._isEnabled) {
     this.state = 'active';
     this._attach();
+  } else {
+    logger.warn('Multiple instances of heimdalljs-fs-monitor have been created'
+      + ' in the same session. Since this can cause fs operations to be counted'
+      + ' multiple times, this instance has been disabled.');
   }
 };
 
