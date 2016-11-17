@@ -14,8 +14,8 @@ function FSMonitor() {
   this.blacklist = ['createReadStream', 'createWriteStream', 'ReadStream', 'WriteStream'];
   this._isEnabled = isMonitorRegistrant && isFirstInstance;
 
-  // Flip this to false because we want other instances for the same heimdall
-  // session to be inert.
+  // Flip this to false because we want other instances from the same module to
+  // be inert.
   isFirstInstance = false;
 }
 
