@@ -1,6 +1,6 @@
 {
   "name": "heimdalljs-fs-monitor",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "fs operation monitoring for heimdalljs",
   "main": "index.js",
   "scripts": {
@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "heimdalljs": "^0.2.0"
+    "heimdalljs": "^0.2.0",
+    "heimdalljs-logger": "^0.1.7"
   }
 }
