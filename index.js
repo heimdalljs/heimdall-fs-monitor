@@ -8,22 +8,18 @@ module.exports = FSMonitor;
 // heimdall session. In that case, we need to guard against double-counting by
 // making other instances of FSMonitor inert.
 var isMonitorRegistrant = false;
-var isFirstInstance = true;
+var hasActiveInstance = false;
 
 function FSMonitor() {
   this.state = 'idle';
   this.blacklist = ['createReadStream', 'createWriteStream', 'ReadStream', 'WriteStream'];
-  this._isEnabled = isMonitorRegistrant && isFirstInstance;
-
-  // Flip this to false because we want other instances from the same module to
-  // be inert.
-  isFirstInstance = false;
 }
 
 FSMonitor.prototype.start = function() {
-  if (this._isEnabled) {
+  if (isMonitorRegistrant && !hasActiveInstance) {
     this.state = 'active';
     this._attach();
+    hasActiveInstance = true;
   } else {
     logger.warn('Multiple instances of heimdalljs-fs-monitor have been created'
       + ' in the same session. Since this can cause fs operations to be counted'
@@ -32,9 +28,10 @@ FSMonitor.prototype.start = function() {
 };
 
 FSMonitor.prototype.stop = function() {
-  if (this._isEnabled) {
+  if (this.state === 'active') {
     this.state = 'idle';
     this._detach();
+    hasActiveInstance = false;
   }
 };
 
