@@ -4,7 +4,8 @@
   "description": "fs operation monitoring for heimdalljs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha tests.js",
+    "test:debug": "mocha debug tests.js"
   },
   "repository": {
     "type": "git",
@@ -13,7 +14,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "chai": "^3.5.0",
     "heimdalljs": "^0.2.0",
-    "heimdalljs-logger": "^0.1.7"
+    "heimdalljs-logger": "^0.1.7",
+    "mocha": "^3.2.0"
   }
 }
