@@ -1,13 +1,14 @@
 'use strict';
-var fs = require('fs');
-var heimdall = require('heimdalljs');
-var logger = require('heimdalljs-logger')('heimdalljs-fs-monitor');
+
+const fs = require('fs');
+const heimdall = require('heimdalljs');
+const logger = require('heimdalljs-logger')('heimdalljs-fs-monitor');
 
 // It is possible for this module to be evaluated more than once in the same
 // heimdall session. In that case, we need to guard against double-counting by
 // making other instances of FSMonitor inert.
-var isMonitorRegistrant = false;
-var hasActiveInstance = false;
+let isMonitorRegistrant = false;
+let hasActiveInstance = false;
 
 class FSMonitor {
   constructor() {
@@ -44,8 +45,8 @@ class FSMonitor {
       throw new Error('Cannot measure if the monitor is not active');
     }
 
-    var metrics = heimdall.statsFor('fs');
-    var m = metrics[name] = metrics[name] || new Metric();
+    let metrics = heimdall.statsFor('fs');
+    let m = metrics[name] = metrics[name] || new Metric();
 
     m.start();
 
@@ -58,17 +59,17 @@ class FSMonitor {
   }
 
   _attach() {
-    var monitor = this;
+    let monitor = this;
 
-    for (var member in fs) {
+    for (let member in fs) {
       if (this.blacklist.indexOf(member) === -1) {
-        var old = fs[member];
+        let old = fs[member];
         if (typeof old === 'function') {
           fs[member] = (function(old, member) {
             return function() {
               if (monitor.shouldMeasure()) {
-                var args = new Array(arguments.length);
-                for (var i = 0; i < arguments.length; i++) {
+                let args = new Array(arguments.length);
+                for (let i = 0; i < arguments.length; i++) {
                   args[i] = arguments[i];
                 }
 
@@ -88,8 +89,8 @@ class FSMonitor {
   }
 
   _detach() {
-    for (var member in fs) {
-      var maybeFunction = fs[member];
+    for (let member in fs) {
+      let maybeFunction = fs[member];
       if (typeof maybeFunction === 'function' && typeof maybeFunction.__restore === 'function') {
         maybeFunction.__restore();
       }
@@ -117,7 +118,7 @@ class Metric {
   }
 
   stop() {
-    var now = process.hrtime();
+    let now = process.hrtime();
 
     this.time += (now[0] - this.startTime[0]) * 1e9 + (now[1] - this.startTime[1]);
     this.startTime = undefined;
