@@ -9,91 +9,93 @@ var logger = require('heimdalljs-logger')('heimdalljs-fs-monitor');
 var isMonitorRegistrant = false;
 var hasActiveInstance = false;
 
-function FSMonitor() {
-  this.state = 'idle';
-  this.blacklist = ['createReadStream', 'createWriteStream', 'ReadStream', 'WriteStream'];
-}
-
-FSMonitor.prototype.start = function() {
-  if (isMonitorRegistrant && !hasActiveInstance) {
-    this.state = 'active';
-    this._attach();
-    hasActiveInstance = true;
-  } else {
-    logger.warn('Multiple instances of heimdalljs-fs-monitor have been created'
-      + ' in the same session. Since this can cause fs operations to be counted'
-      + ' multiple times, this instance has been disabled.');
-  }
-};
-
-FSMonitor.prototype.stop = function() {
-  if (this.state === 'active') {
+class FSMonitor {
+  constructor() {
     this.state = 'idle';
-    this._detach();
-    hasActiveInstance = false;
-  }
-};
-
-FSMonitor.prototype.shouldMeasure = function() {
-  return this.state === 'active';
-};
-
-FSMonitor.prototype._measure = function(name, original, context, args) {
-  if (this.state !== 'active') {
-    throw new Error('Cannot measure if the monitor is not active');
+    this.blacklist = ['createReadStream', 'createWriteStream', 'ReadStream', 'WriteStream'];
   }
 
-  var metrics = heimdall.statsFor('fs');
-  var m = metrics[name] = metrics[name] || new Metric();
-
-  m.start();
-
-  // TODO: handle async
-  try {
-    return original.apply(context, args);
-  } finally {
-    m.stop();
+  start() {
+    if (isMonitorRegistrant && !hasActiveInstance) {
+      this.state = 'active';
+      this._attach();
+      hasActiveInstance = true;
+    } else {
+      logger.warn('Multiple instances of heimdalljs-fs-monitor have been created'
+        + ' in the same session. Since this can cause fs operations to be counted'
+        + ' multiple times, this instance has been disabled.');
+    }
   }
-};
 
-FSMonitor.prototype._attach = function() {
-  var monitor = this;
+  stop() {
+    if (this.state === 'active') {
+      this.state = 'idle';
+      this._detach();
+      hasActiveInstance = false;
+    }
+  }
 
-  for (var member in fs) {
-    if (this.blacklist.indexOf(member) === -1) {
-      var old = fs[member];
-      if (typeof old === 'function') {
-        fs[member] = (function(old, member) {
-          return function() {
-            if (monitor.shouldMeasure()) {
-              var args = new Array(arguments.length);
-              for (var i = 0; i < arguments.length; i++) {
-                args[i] = arguments[i];
+  shouldMeasure() {
+    return this.state === 'active';
+  }
+
+  _measure(name, original, context, args) {
+    if (this.state !== 'active') {
+      throw new Error('Cannot measure if the monitor is not active');
+    }
+
+    var metrics = heimdall.statsFor('fs');
+    var m = metrics[name] = metrics[name] || new Metric();
+
+    m.start();
+
+    // TODO: handle async
+    try {
+      return original.apply(context, args);
+    } finally {
+      m.stop();
+    }
+  }
+
+  _attach() {
+    var monitor = this;
+
+    for (var member in fs) {
+      if (this.blacklist.indexOf(member) === -1) {
+        var old = fs[member];
+        if (typeof old === 'function') {
+          fs[member] = (function(old, member) {
+            return function() {
+              if (monitor.shouldMeasure()) {
+                var args = new Array(arguments.length);
+                for (var i = 0; i < arguments.length; i++) {
+                  args[i] = arguments[i];
+                }
+
+                return monitor._measure(member, old, fs, args);
+              } else {
+                return old.apply(fs, arguments);
               }
+            };
+          }(old, member));
 
-              return monitor._measure(member, old, fs, args);
-            } else {
-              return old.apply(fs, arguments);
-            }
+          fs[member].__restore = function() {
+            fs[member] = old;
           };
-        }(old, member));
-
-        fs[member].__restore = function() {
-          fs[member] = old;
-        };
+        }
       }
     }
   }
-};
 
-FSMonitor.prototype._detach = function() {
-  for (var member in fs) {
-    var maybeFunction = fs[member];
-    if (typeof maybeFunction === 'function' && typeof maybeFunction.__restore === 'function') {
-      maybeFunction.__restore();
+  _detach() {
+    for (var member in fs) {
+      var maybeFunction = fs[member];
+      if (typeof maybeFunction === 'function' && typeof maybeFunction.__restore === 'function') {
+        maybeFunction.__restore();
+      }
     }
   }
-};
+}
 
 module.exports = FSMonitor;
 
@@ -102,27 +104,30 @@ if (!heimdall.hasMonitor('fs')) {
   isMonitorRegistrant = true;
 }
 
-function Metric() {
-  this.count = 0;
-  this.time = 0;
-  this.startTime = undefined;
+class Metric {
+  constructor() {
+    this.count = 0;
+    this.time = 0;
+    this.startTime = undefined;
+  }
+
+  start() {
+    this.startTime = process.hrtime();
+    this.count++;
+  }
+
+  stop() {
+    var now = process.hrtime();
+
+    this.time += (now[0] - this.startTime[0]) * 1e9 + (now[1] - this.startTime[1]);
+    this.startTime = undefined;
+  }
+
+  toJSON() {
+    return {
+      count: this.count,
+      time: this.time
+    };
+  }
 }
 
-Metric.prototype.start = function() {
-  this.startTime = process.hrtime();
-  this.count++;
-};
-
-Metric.prototype.stop = function() {
-  var now = process.hrtime();
-
-  this.time += (now[0] - this.startTime[0]) * 1e9 + (now[1] - this.startTime[1]);
-  this.startTime = undefined;
-};
-
-Metric.prototype.toJSON = function() {
-  return {
-    count: this.count,
-    time: this.time
-  };
-};
