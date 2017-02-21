@@ -2,7 +2,6 @@
 var fs = require('fs');
 var heimdall = require('heimdalljs');
 var logger = require('heimdalljs-logger')('heimdalljs-fs-monitor');
-module.exports = FSMonitor;
 
 // It is possible for this module to be evaluated more than once in the same
 // heimdall session. In that case, we need to guard against double-counting by
@@ -37,36 +36,6 @@ FSMonitor.prototype.stop = function() {
 
 FSMonitor.prototype.shouldMeasure = function() {
   return this.state === 'active';
-};
-
-if (!heimdall.hasMonitor('fs')) {
-  heimdall.registerMonitor('fs', function FSSchema() {});
-  isMonitorRegistrant = true;
-}
-
-function Metric() {
-  this.count = 0;
-  this.time = 0;
-  this.startTime = undefined;
-}
-
-Metric.prototype.start = function() {
-  this.startTime = process.hrtime();
-  this.count++;
-};
-
-Metric.prototype.stop = function() {
-  var now = process.hrtime();
-
-  this.time += (now[0] - this.startTime[0]) * 1e9 + (now[1] - this.startTime[1]);
-  this.startTime = undefined;
-};
-
-Metric.prototype.toJSON = function() {
-  return {
-    count: this.count,
-    time: this.time
-  };
 };
 
 FSMonitor.prototype._measure = function(name, original, context, args) {
@@ -124,4 +93,36 @@ FSMonitor.prototype._detach = function() {
       maybeFunction.__restore();
     }
   }
+};
+
+module.exports = FSMonitor;
+
+if (!heimdall.hasMonitor('fs')) {
+  heimdall.registerMonitor('fs', function FSSchema() {});
+  isMonitorRegistrant = true;
+}
+
+function Metric() {
+  this.count = 0;
+  this.time = 0;
+  this.startTime = undefined;
+}
+
+Metric.prototype.start = function() {
+  this.startTime = process.hrtime();
+  this.count++;
+};
+
+Metric.prototype.stop = function() {
+  var now = process.hrtime();
+
+  this.time += (now[0] - this.startTime[0]) * 1e9 + (now[1] - this.startTime[1]);
+  this.startTime = undefined;
+};
+
+Metric.prototype.toJSON = function() {
+  return {
+    count: this.count,
+    time: this.time
+  };
 };
