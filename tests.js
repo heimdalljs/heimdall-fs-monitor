@@ -12,7 +12,6 @@ describe('FSMonitor', function() {
     expect(monitor0.state, 'monitor0 (m0 active)').to.eql('active');
     expect(monitor1.state, 'monitor1 (m0 active)').to.eql('idle');
 
-    debugger;
     monitor0.stop();
 
     monitor1.start();
