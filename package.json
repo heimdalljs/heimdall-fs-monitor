@@ -14,11 +14,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "chai": "^3.5.0",
     "heimdalljs": "^0.2.0",
     "heimdalljs-logger": "^0.1.7"
   },
   "devDependencies": {
+    "chai": "3.5.0",
     "mocha": "3.2.0"
   }
 }
