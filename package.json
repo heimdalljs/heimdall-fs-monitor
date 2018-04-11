@@ -16,7 +16,9 @@
   "dependencies": {
     "chai": "^3.5.0",
     "heimdalljs": "^0.2.0",
-    "heimdalljs-logger": "^0.1.7",
-    "mocha": "^3.2.0"
+    "heimdalljs-logger": "^0.1.7"
+  },
+  "devDependencies": {
+    "mocha": "3.2.0"
   }
 }
