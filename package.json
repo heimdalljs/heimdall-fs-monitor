@@ -1,6 +1,6 @@
 {
   "name": "heimdalljs-fs-monitor",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "fs operation monitoring for heimdalljs",
   "main": "index.js",
   "scripts": {
