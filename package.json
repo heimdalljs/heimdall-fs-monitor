@@ -17,7 +17,7 @@
     "index.js"
   ],
   "dependencies": {
-    "heimdalljs": "^0.2.0",
+    "heimdalljs": "^0.2.3",
     "heimdalljs-logger": "^0.1.7"
   },
   "devDependencies": {
