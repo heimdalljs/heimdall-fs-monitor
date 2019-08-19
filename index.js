@@ -13,7 +13,15 @@ let hasActiveInstance = false;
 class FSMonitor {
   constructor() {
     this.state = 'idle';
-    this.blacklist = ['createReadStream', 'createWriteStream', 'ReadStream', 'WriteStream'];
+    this.blacklist = [
+      'createReadStream',
+      'createWriteStream',
+      'Dirent',
+      'FSWatcher',
+      'ReadStream',
+      'Stats',
+      'WriteStream'
+    ];
   }
 
   start() {
