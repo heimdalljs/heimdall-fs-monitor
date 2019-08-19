@@ -3,7 +3,8 @@
 const FSMonitor = require('./');
 const expect = require('chai').expect;
 const fs = require('fs');
-const originalStatSync = fs.statSync;
+
+const originalFS = Object.assign({}, fs);
 
 describe('FSMonitor', function() {
   it('will only allow one active instance at a time', function() {
@@ -28,17 +29,65 @@ describe('FSMonitor', function() {
     monitor0.stop();
   });
 
+  it('does not mutate the prototype of classes on fs [GH#22]', function() {
+    let monitor = new FSMonitor();
+
+    expect(typeof fs.Stats.prototype.isFile).to.equal('function');
+
+    monitor.start();
+
+    expect(typeof fs.Stats.prototype.isFile).to.equal('function', 'after updating fs');
+
+    monitor.stop();
+
+    expect(typeof fs.Stats.prototype.isFile).to.equal('function');
+  });
+
+  it('avoids mutating known classes on `fs` [GH#22]', function() {
+    let monitor = new FSMonitor();
+
+    expect(fs.Stats.prototype.isFile).to.be;
+    expect(fs.Stats).to.equal(originalFS.Stats);
+    expect(fs.Dirent).to.equal(originalFS.Dirent);
+    expect(fs.FSWatcher).to.equal(originalFS.FSWatcher);
+    expect(fs.FileHandle).to.equal(originalFS.FileHandle);
+    expect(fs.ReadStream).to.equal(originalFS.ReadStream);
+    expect(fs.WriteStream).to.equal(originalFS.WriteStream);
+
+    try {
+      monitor.start();
+
+      // should not have been changed
+      expect(fs.Stats).to.equal(originalFS.Stats);
+      expect(fs.Dirent).to.equal(originalFS.Dirent);
+      expect(fs.FSWatcher).to.equal(originalFS.FSWatcher);
+      expect(fs.FileHandle).to.equal(originalFS.FileHandle);
+      expect(fs.ReadStream).to.equal(originalFS.ReadStream);
+      expect(fs.WriteStream).to.equal(originalFS.WriteStream);
+    } finally {
+      // ensure we stop and detach even if we fail an assertion
+      monitor.stop();
+    }
+
+    expect(fs.Stats).to.equal(originalFS.Stats);
+    expect(fs.Dirent).to.equal(originalFS.Dirent);
+    expect(fs.FSWatcher).to.equal(originalFS.FSWatcher);
+    expect(fs.FileHandle).to.equal(originalFS.FileHandle);
+    expect(fs.ReadStream).to.equal(originalFS.ReadStream);
+    expect(fs.WriteStream).to.equal(originalFS.WriteStream);
+  });
+
   describe('.prototype.stop', function() {
     it('restores fs functions to their defaults', function() {
       let monitor = new FSMonitor();
 
-      expect(fs.statSync).to.equal(originalStatSync);
+      expect(fs.statSync).to.equal(originalFS.statSync);
 
       monitor.start();
-      expect(fs.statSync).to.not.equal(originalStatSync);
+      expect(fs.statSync).to.not.equal(originalFS.statSync);
 
       monitor.stop();
-      expect(fs.statSync).to.equal(originalStatSync);
+      expect(fs.statSync).to.equal(originalFS.statSync);
     });
   });
 });
