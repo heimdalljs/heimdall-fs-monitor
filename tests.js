@@ -1,8 +1,10 @@
 /* global describe, it */
 
+const heimdall = require('heimdalljs');
 const FSMonitor = require('./');
 const expect = require('chai').expect;
 const fs = require('fs');
+const path = require('path');
 
 const originalFS = Object.assign({}, fs);
 
@@ -75,6 +77,29 @@ describe('FSMonitor', function() {
     expect(fs.FileHandle).to.equal(originalFS.FileHandle);
     expect(fs.ReadStream).to.equal(originalFS.ReadStream);
     expect(fs.WriteStream).to.equal(originalFS.WriteStream);
+  });
+
+  it('should be able to gather data from fs commands', function() {
+    const monitor = new FSMonitor();
+
+    monitor.start();
+
+    fs.readFileSync(path.resolve(__dirname, 'index.js'));
+
+    monitor.stop();
+
+    expect(Object.keys(heimdall.current.stats.fs)).to.deep.equal([
+      'readFileSync',
+      'openSync',
+      'readSync',
+      'closeSync'
+    ]);
+    expect(heimdall.current.stats.fs.readFileSync.invocations.length).to.equal(1);
+    expect(Object.keys(heimdall.current.stats.fs.readFileSync.invocations[0])).to.deep.equal([
+      'fileName',
+      'lineNumber',
+      'statckTrace'
+    ])
   });
 
   describe('.prototype.stop', function() {

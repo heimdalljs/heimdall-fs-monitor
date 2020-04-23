@@ -48,7 +48,7 @@ class FSMonitor {
     return this.state === 'active';
   }
 
-  _measure(name, original, context, args) {
+  _measure(name, original, context, args, location) {
     if (this.state !== 'active') {
       throw new Error('Cannot measure if the monitor is not active');
     }
@@ -56,7 +56,7 @@ class FSMonitor {
     let metrics = heimdall.statsFor('fs');
     let m = metrics[name] = metrics[name] || new Metric();
 
-    m.start();
+    m.start(location);
 
     // TODO: handle async
     try {
@@ -81,7 +81,50 @@ class FSMonitor {
                   args[i] = arguments[i];
                 }
 
-                return monitor._measure(member, old, fs, args);
+                let location;
+
+                try {
+                  /*
+                    Uses error to build a stack of where the fs call was coming from.
+
+                    An example output of what this will look like is
+
+                    {
+                      fileName: '/users/home/heimdall-fs-monitor/tests.js',
+                      lineNumber: '87',
+                      statckTrace: [
+                        '    at Object.readFileSync (/users/home/heimdall-fs-monitor/index.js:87:29)',
+                        '    at Context.<anonymous> (/users/home/heimdall-fs-monitor/tests.js:87:8)',
+                        '    at callFn (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runnable.js:383:21)',
+                        '    at Test.Runnable.run (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runnable.js:375:7)',
+                        '    at Runner.runTest (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:446:10)',
+                        '    at /users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:564:12',
+                        '    at next (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:360:14)',
+                        '    at /users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:370:7',
+                        '    at next (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:294:14)',
+                        '    at Immediate._onImmediate (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:338:5)',
+                        '    at processImmediate (internal/timers.js:456:21)'
+                      ]
+                    }
+                   */
+                  const e = new Error();
+                  // removing error from the first line of the trace
+                  const statckTrace = e.stack.split("\n").slice(1, e.stack.split("\n").length);
+                  const frame = e.stack.split("\n")[2];
+                  const arr = frame.split(" ");
+                  const functionName = arr[5];
+                  const where = arr[6].split(/[:()]/);
+                  const fileName = where[1];
+                  const lineNumber = where[2];
+
+                  location = {
+                    fileName,
+                    lineNumber,
+                    statckTrace,
+                  }
+                } catch(ex) {}
+
+                return monitor._measure(member, old, fs, args, location);
               } else {
                 return old.apply(fs, arguments);
               }
@@ -117,10 +160,13 @@ class Metric {
   constructor() {
     this.count = 0;
     this.time = 0;
+    this.invocations = [];
     this.startTime = undefined;
   }
 
-  start() {
+  start(location) {
+    // we want to push all the locations of our invocations to an array
+    this.invocations.push(location)
     this.startTime = process.hrtime();
     this.count++;
   }
@@ -134,9 +180,9 @@ class Metric {
 
   toJSON() {
     return {
+      invocations: this.invocations,
       count: this.count,
       time: this.time
     };
   }
 }
-
