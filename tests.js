@@ -88,13 +88,18 @@ describe('FSMonitor', function() {
 
     monitor.stop();
 
-    expect(Object.keys(heimdall.current.stats.fs)).to.deep.equal([
+    const expected = [
       'readFileSync',
       'openSync',
-      'fstatSync',
       'readSync',
       'closeSync'
-    ]);
+    ];
+
+    if(process.version.match(/v6/)) {
+      expected.push('fstatSync');
+    }
+
+    expect(Object.keys(heimdall.current.stats.fs).sort()).to.deep.equal(expected.sort());
     expect(heimdall.current.stats.fs.readFileSync.invocations.length).to.equal(1);
     expect(Object.keys(heimdall.current.stats.fs.readFileSync.invocations[0])).to.deep.equal([
       'fileName',
