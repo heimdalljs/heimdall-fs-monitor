@@ -91,6 +91,7 @@ describe('FSMonitor', function() {
     expect(Object.keys(heimdall.current.stats.fs)).to.deep.equal([
       'readFileSync',
       'openSync',
+      'fstatSync',
       'readSync',
       'closeSync'
     ]);
