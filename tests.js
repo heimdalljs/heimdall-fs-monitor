@@ -80,7 +80,7 @@ describe('FSMonitor', function() {
   });
 
   it('should be able to gather data from fs commands', function() {
-    const monitor = new FSMonitor();
+    const monitor = new FSMonitor({ captureTracing: true });
 
     monitor.start();
 

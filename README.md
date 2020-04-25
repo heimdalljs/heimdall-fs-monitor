@@ -1,6 +1,4 @@
-
-heimdall-fs-monitor
-==============================================================================
+# heimdall-fs-monitor
 
 [![npm](https://img.shields.io/npm/v/heimdalljs-fs-monitor.svg)](https://www.npmjs.com/package/heimdalljs-fs-monitor)
 
@@ -21,7 +19,9 @@ Usage
 var FSMonitor = require('heimdalljs-fs-monitor');
 
 // create a new file system monitor
-var monitor = new FSMonitor();
+var monitor = new FSMonitor({
+  captureTracing: true // defaults to false, if turned on will capture tracing information for fs calls
+});
 
 // start monitoring
 monitor.start();
@@ -29,7 +29,7 @@ monitor.start();
 // ... do some file system work ...
 var fs = require('fs');
 fs.readFileSync('package.json');
- 
+
 // stop monitoring
 monitor.stop();
 

@@ -3,6 +3,9 @@
 const fs = require('fs');
 const heimdall = require('heimdalljs');
 const logger = require('heimdalljs-logger')('heimdalljs-fs-monitor');
+const callsites = require('callsites');
+const cleanStack = require('clean-stack');
+const extractStack = require('extract-stack');
 
 // It is possible for this module to be evaluated more than once in the same
 // heimdall session. In that case, we need to guard against double-counting by
@@ -11,7 +14,8 @@ let isMonitorRegistrant = false;
 let hasActiveInstance = false;
 
 class FSMonitor {
-  constructor() {
+  constructor(options) {
+    this.captureTracing = options && options.captureTracing || false;
     this.state = 'idle';
     this.blacklist = [
       'createReadStream',
@@ -83,46 +87,38 @@ class FSMonitor {
 
                 let location;
 
-                try {
-                  /*
-                    Uses error to build a stack of where the fs call was coming from.
+                if(monitor.captureTracing) {
+                  try {
+                    /*
+                      Uses error to build a stack of where the fs call was coming from.
 
-                    An example output of what this will look like is
+                      An example output of what this will look like is
 
-                    {
-                      fileName: '/users/home/heimdall-fs-monitor/tests.js',
-                      lineNumber: '87',
-                      statckTrace: [
-                        '    at Object.readFileSync (/users/home/heimdall-fs-monitor/index.js:87:29)',
-                        '    at Context.<anonymous> (/users/home/heimdall-fs-monitor/tests.js:87:8)',
-                        '    at callFn (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runnable.js:383:21)',
-                        '    at Test.Runnable.run (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runnable.js:375:7)',
-                        '    at Runner.runTest (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:446:10)',
-                        '    at /users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:564:12',
-                        '    at next (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:360:14)',
-                        '    at /users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:370:7',
-                        '    at next (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:294:14)',
-                        '    at Immediate._onImmediate (/users/home/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:338:5)',
-                        '    at processImmediate (internal/timers.js:456:21)'
-                      ]
+                      {
+                        fileName: '~/heimdall-fs-monitor/tests.js',
+                        lineNumber: 87,
+                        statckTrace: '    at Object.readFileSync (~/heimdall-fs-monitor/index.js:115:35)\n' +
+                          '    at Context.<anonymous> (~/heimdall-fs-monitor/tests.js:87:8)\n' +
+                          '    at callFn (~/heimdall-fs-monitor/node_modules/mocha/lib/runnable.js:383:21)\n' +
+                          '    at Test.Runnable.run (~/heimdall-fs-monitor/node_modules/mocha/lib/runnable.js:375:7)\n' +
+                          '    at Runner.runTest (~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:446:10)\n' +
+                          '    at ~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:564:12\n' +
+                          '    at next (~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:360:14)\n' +
+                          '    at ~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:370:7\n' +
+                          '    at next (~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:294:14)\n' +
+                          '    at Immediate._onImmediate (~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:338:5)'
+                      }
+                     */
+                    const error = new Error();
+                    const calls = callsites();
+
+                    location = {
+                      fileName: calls[1].getFileName(),
+                      lineNumber: calls[1].getLineNumber(),
+                      statckTrace: cleanStack(extractStack(error), { pretty: true }),
                     }
-                   */
-                  const e = new Error();
-                  // removing error from the first line of the trace
-                  const statckTrace = e.stack.split("\n").slice(1, e.stack.split("\n").length);
-                  const frame = e.stack.split("\n")[2];
-                  const arr = frame.split(" ");
-                  const functionName = arr[5];
-                  const where = arr[6].split(/[:()]/);
-                  const fileName = where[1];
-                  const lineNumber = where[2];
-
-                  location = {
-                    fileName,
-                    lineNumber,
-                    statckTrace,
-                  }
-                } catch(ex) {}
+                  } catch(ex) {}
+                }
 
                 return monitor._measure(member, old, fs, args, location);
               } else {
@@ -166,7 +162,10 @@ class Metric {
 
   start(location) {
     // we want to push all the locations of our invocations to an array
-    this.invocations.push(location)
+    if(location) {
+      this.invocations.push(location)
+    }
+
     this.startTime = process.hrtime();
     this.count++;
   }
