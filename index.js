@@ -14,8 +14,8 @@ let isMonitorRegistrant = false;
 let hasActiveInstance = false;
 
 class FSMonitor {
-  constructor(options) {
-    this.captureTracing = options && options.captureTracing || false;
+  constructor() {
+    this.captureTracing = parseInt(process.env.HEIMDALL_FS_MONITOR_CALL_TRACING) === 1 || false;
     this.state = 'idle';
     this.blacklist = [
       'createReadStream',
@@ -156,14 +156,21 @@ class Metric {
   constructor() {
     this.count = 0;
     this.time = 0;
-    this.invocations = [];
+    this.invocations = {};
     this.startTime = undefined;
   }
 
   start(location) {
     // we want to push all the locations of our invocations to an array
     if(location) {
-      this.invocations.push(location)
+      if(!this.invocations[location.statckTrace]) {
+        this.invocations[location.statckTrace] = {
+          lineNumber: location.lineNumber,
+          fileName: location.fileName,
+          count: 0,
+        }
+      }
+      this.invocations[location.statckTrace].count += 1;
     }
 
     this.startTime = process.hrtime();

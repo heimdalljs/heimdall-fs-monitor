@@ -79,8 +79,10 @@ describe('FSMonitor', function() {
     expect(fs.WriteStream).to.equal(originalFS.WriteStream);
   });
 
-  it('should be able to gather data from fs commands', function() {
-    const monitor = new FSMonitor({ captureTracing: true });
+  it('should be able to gather call tracking data from fs commands', function() {
+    process.env.HEIMDALL_FS_MONITOR_CALL_TRACING = 1;
+
+    const monitor = new FSMonitor();
 
     monitor.start();
 
@@ -100,12 +102,40 @@ describe('FSMonitor', function() {
     }
 
     expect(Object.keys(heimdall.current.stats.fs).sort()).to.deep.equal(expected.sort());
-    expect(heimdall.current.stats.fs.readFileSync.invocations.length).to.equal(1);
-    expect(Object.keys(heimdall.current.stats.fs.readFileSync.invocations[0])).to.deep.equal([
-      'fileName',
+    expect(Object.keys(heimdall.current.stats.fs.readFileSync.invocations).length).to.equal(1);
+    expect(Object.keys(heimdall.current.stats.fs.readFileSync.invocations[Object.keys(heimdall.current.stats.fs.readFileSync.invocations)[0]])).to.deep.equal([
       'lineNumber',
-      'statckTrace'
-    ])
+      'fileName',
+      'count'
+    ]);
+    console.log(heimdall.current.stats.fs.readFileSync)
+  });
+
+  it('should not be able to gather call tracking data from fs commands', function() {
+    heimdall.current.stats.fs = {};
+    process.env.HEIMDALL_FS_MONITOR_CALL_TRACING = 0;
+
+    const monitor = new FSMonitor();
+
+    monitor.start();
+
+    fs.readFileSync(path.resolve(__dirname, 'index.js'));
+
+    monitor.stop();
+
+    const expected = [
+      'readFileSync',
+      'openSync',
+      'readSync',
+      'closeSync'
+    ];
+
+    if(process.version.match(/v6/)) {
+      expected.push('fstatSync');
+    }
+
+    expect(Object.keys(heimdall.current.stats.fs).sort()).to.deep.equal(expected.sort());
+    expect(Object.keys(heimdall.current.stats.fs.readFileSync.invocations).length).to.equal(0);
   });
 
   describe('.prototype.stop', function() {
