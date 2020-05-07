@@ -97,7 +97,7 @@ class FSMonitor {
                       {
                         fileName: '~/heimdall-fs-monitor/tests.js',
                         lineNumber: 87,
-                        statckTrace: '    at Object.readFileSync (~/heimdall-fs-monitor/index.js:115:35)\n' +
+                        stackTrace: '    at Object.readFileSync (~/heimdall-fs-monitor/index.js:115:35)\n' +
                           '    at Context.<anonymous> (~/heimdall-fs-monitor/tests.js:87:8)\n' +
                           '    at callFn (~/heimdall-fs-monitor/node_modules/mocha/lib/runnable.js:383:21)\n' +
                           '    at Test.Runnable.run (~/heimdall-fs-monitor/node_modules/mocha/lib/runnable.js:375:7)\n' +
@@ -115,7 +115,7 @@ class FSMonitor {
                     location = {
                       fileName: calls[1].getFileName(),
                       lineNumber: calls[1].getLineNumber(),
-                      statckTrace: cleanStack(extractStack(error), { pretty: true }),
+                      stackTrace: cleanStack(extractStack(error), { pretty: true }),
                     }
                   } catch(ex) {}
                 }
@@ -163,14 +163,14 @@ class Metric {
   start(location) {
     // we want to push all the locations of our invocations to an array
     if(location) {
-      if(!this.invocations[location.statckTrace]) {
-        this.invocations[location.statckTrace] = {
+      if(!this.invocations[location.stackTrace]) {
+        this.invocations[location.stackTrace] = {
           lineNumber: location.lineNumber,
           fileName: location.fileName,
           count: 0,
         }
       }
-      this.invocations[location.statckTrace].count += 1;
+      this.invocations[location.stackTrace].count += 1;
     }
 
     this.startTime = process.hrtime();
