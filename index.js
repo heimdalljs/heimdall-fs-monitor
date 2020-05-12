@@ -15,7 +15,6 @@ let hasActiveInstance = false;
 
 class FSMonitor {
   constructor() {
-    this.captureTracing = parseInt(process.env.HEIMDALL_FS_MONITOR_CALL_TRACING) === 1 || false;
     this.state = 'idle';
     this.blacklist = [
       'createReadStream',
@@ -26,6 +25,10 @@ class FSMonitor {
       'Stats',
       'WriteStream'
     ];
+  }
+
+  get captureTracing() {
+    return parseInt(process.env.HEIMDALL_FS_MONITOR_CALL_TRACING) === 1 || false
   }
 
   start() {

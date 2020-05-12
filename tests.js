@@ -108,7 +108,6 @@ describe('FSMonitor', function() {
       'fileName',
       'count'
     ]);
-    console.log(heimdall.current.stats.fs.readFileSync)
   });
 
   it('should not be able to gather call tracking data from fs commands', function() {
