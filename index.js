@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const heimdall = require('heimdalljs');
+const debug = require('debug')('heimdalljs-fs-monitor');
 const logger = require('heimdalljs-logger')('heimdalljs-fs-monitor');
 const callsites = require('callsites');
 const cleanStack = require('clean-stack');
@@ -120,7 +121,9 @@ class FSMonitor {
                       lineNumber: calls[1].getLineNumber(),
                       stackTrace: cleanStack(extractStack(error), { pretty: true }),
                     }
-                  } catch(ex) {}
+                  } catch(ex) {
+                    debug(`could not generate stack because: ${ex.message}`)
+                  }
                 }
 
                 return monitor._measure(member, old, fs, args, location);
