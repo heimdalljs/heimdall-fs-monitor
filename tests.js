@@ -9,6 +9,10 @@ const path = require('path');
 const originalFS = Object.assign({}, fs);
 
 describe('FSMonitor', function() {
+  beforeEach(function() {
+    process.env.HEIMDALL_FS_MONITOR_CALL_TRACING = 0;
+  });
+
   it('will only allow one active instance at a time', function() {
     let monitor0 = new FSMonitor();
     let monitor1 = new FSMonitor();
@@ -112,7 +116,6 @@ describe('FSMonitor', function() {
 
   it('should not be able to gather call tracking data from fs commands', function() {
     heimdall.current.stats.fs = {};
-    process.env.HEIMDALL_FS_MONITOR_CALL_TRACING = 0;
 
     const monitor = new FSMonitor();
 
