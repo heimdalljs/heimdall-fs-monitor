@@ -1,12 +1,18 @@
 /* global describe, it */
 
+const heimdall = require('heimdalljs');
 const FSMonitor = require('./');
 const expect = require('chai').expect;
 const fs = require('fs');
+const path = require('path');
 
 const originalFS = Object.assign({}, fs);
 
 describe('FSMonitor', function() {
+  beforeEach(function() {
+    process.env.HEIMDALL_FS_MONITOR_CALL_TRACING = 0;
+  });
+
   it('will only allow one active instance at a time', function() {
     let monitor0 = new FSMonitor();
     let monitor1 = new FSMonitor();
@@ -75,6 +81,63 @@ describe('FSMonitor', function() {
     expect(fs.FileHandle).to.equal(originalFS.FileHandle);
     expect(fs.ReadStream).to.equal(originalFS.ReadStream);
     expect(fs.WriteStream).to.equal(originalFS.WriteStream);
+  });
+
+  it('should be able to gather call tracking data from fs commands', function() {
+    process.env.HEIMDALL_FS_MONITOR_CALL_TRACING = 1;
+
+    const monitor = new FSMonitor();
+
+    monitor.start();
+
+    fs.readFileSync(path.resolve(__dirname, 'index.js'));
+
+    monitor.stop();
+
+    const expected = [
+      'readFileSync',
+      'openSync',
+      'readSync',
+      'closeSync'
+    ];
+
+    if(process.version.match(/v6/)) {
+      expected.push('fstatSync');
+    }
+
+    expect(Object.keys(heimdall.current.stats.fs).sort()).to.deep.equal(expected.sort());
+    expect(Object.keys(heimdall.current.stats.fs.readFileSync.invocations).length).to.equal(1);
+    expect(Object.keys(heimdall.current.stats.fs.readFileSync.invocations[Object.keys(heimdall.current.stats.fs.readFileSync.invocations)[0]])).to.deep.equal([
+      'lineNumber',
+      'fileName',
+      'count'
+    ]);
+  });
+
+  it('should not be able to gather call tracking data from fs commands', function() {
+    heimdall.current.stats.fs = {};
+
+    const monitor = new FSMonitor();
+
+    monitor.start();
+
+    fs.readFileSync(path.resolve(__dirname, 'index.js'));
+
+    monitor.stop();
+
+    const expected = [
+      'readFileSync',
+      'openSync',
+      'readSync',
+      'closeSync'
+    ];
+
+    if(process.version.match(/v6/)) {
+      expected.push('fstatSync');
+    }
+
+    expect(Object.keys(heimdall.current.stats.fs).sort()).to.deep.equal(expected.sort());
+    expect(Object.keys(heimdall.current.stats.fs.readFileSync.invocations).length).to.equal(0);
   });
 
   describe('.prototype.stop', function() {

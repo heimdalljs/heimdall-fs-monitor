@@ -1,6 +1,6 @@
 {
   "name": "heimdalljs-fs-monitor",
-  "version": "0.2.3",
+  "version": "1.0.0",
   "description": "fs operation monitoring for heimdalljs",
   "main": "index.js",
   "scripts": {
@@ -17,11 +17,15 @@
     "index.js"
   ],
   "dependencies": {
+    "callsites": "^3.1.0",
+    "clean-stack": "^2.2.0",
+    "extract-stack": "^2.0.0",
     "heimdalljs": "^0.2.3",
     "heimdalljs-logger": "^0.1.7"
   },
   "devDependencies": {
-    "chai": "4.1.2",
-    "mocha": "5.1.1"
+    "chai": "^4.2.0",
+    "debug": "^4.1.1",
+    "mocha": "^7.1.2"
   }
 }

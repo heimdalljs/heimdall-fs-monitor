@@ -2,7 +2,11 @@
 
 const fs = require('fs');
 const heimdall = require('heimdalljs');
+const debug = require('debug')('heimdalljs-fs-monitor');
 const logger = require('heimdalljs-logger')('heimdalljs-fs-monitor');
+const callsites = require('callsites');
+const cleanStack = require('clean-stack');
+const extractStack = require('extract-stack');
 
 // It is possible for this module to be evaluated more than once in the same
 // heimdall session. In that case, we need to guard against double-counting by
@@ -22,6 +26,10 @@ class FSMonitor {
       'Stats',
       'WriteStream'
     ];
+  }
+
+  get captureTracing() {
+    return parseInt(process.env.HEIMDALL_FS_MONITOR_CALL_TRACING) === 1 || false
   }
 
   start() {
@@ -48,7 +56,7 @@ class FSMonitor {
     return this.state === 'active';
   }
 
-  _measure(name, original, context, args) {
+  _measure(name, original, context, args, location) {
     if (this.state !== 'active') {
       throw new Error('Cannot measure if the monitor is not active');
     }
@@ -56,7 +64,7 @@ class FSMonitor {
     let metrics = heimdall.statsFor('fs');
     let m = metrics[name] = metrics[name] || new Metric();
 
-    m.start();
+    m.start(location);
 
     // TODO: handle async
     try {
@@ -81,7 +89,44 @@ class FSMonitor {
                   args[i] = arguments[i];
                 }
 
-                return monitor._measure(member, old, fs, args);
+                let location;
+
+                if(monitor.captureTracing) {
+                  try {
+                    /*
+                      Uses error to build a stack of where the fs call was coming from.
+
+                      An example output of what this will look like is
+
+                      {
+                        fileName: '~/heimdall-fs-monitor/tests.js',
+                        lineNumber: 87,
+                        stackTrace: '    at Object.readFileSync (~/heimdall-fs-monitor/index.js:115:35)\n' +
+                          '    at Context.<anonymous> (~/heimdall-fs-monitor/tests.js:87:8)\n' +
+                          '    at callFn (~/heimdall-fs-monitor/node_modules/mocha/lib/runnable.js:383:21)\n' +
+                          '    at Test.Runnable.run (~/heimdall-fs-monitor/node_modules/mocha/lib/runnable.js:375:7)\n' +
+                          '    at Runner.runTest (~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:446:10)\n' +
+                          '    at ~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:564:12\n' +
+                          '    at next (~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:360:14)\n' +
+                          '    at ~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:370:7\n' +
+                          '    at next (~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:294:14)\n' +
+                          '    at Immediate._onImmediate (~/heimdall-fs-monitor/node_modules/mocha/lib/runner.js:338:5)'
+                      }
+                     */
+                    const error = new Error();
+                    const calls = callsites();
+
+                    location = {
+                      fileName: calls[1].getFileName(),
+                      lineNumber: calls[1].getLineNumber(),
+                      stackTrace: cleanStack(extractStack(error), { pretty: true }),
+                    }
+                  } catch(ex) {
+                    debug(`could not generate stack because: ${ex.message}`)
+                  }
+                }
+
+                return monitor._measure(member, old, fs, args, location);
               } else {
                 return old.apply(fs, arguments);
               }
@@ -117,10 +162,23 @@ class Metric {
   constructor() {
     this.count = 0;
     this.time = 0;
+    this.invocations = {};
     this.startTime = undefined;
   }
 
-  start() {
+  start(location) {
+    // we want to push all the locations of our invocations to an array
+    if(location) {
+      if(!this.invocations[location.stackTrace]) {
+        this.invocations[location.stackTrace] = {
+          lineNumber: location.lineNumber,
+          fileName: location.fileName,
+          count: 0,
+        }
+      }
+      this.invocations[location.stackTrace].count += 1;
+    }
+
     this.startTime = process.hrtime();
     this.count++;
   }
@@ -134,9 +192,9 @@ class Metric {
 
   toJSON() {
     return {
+      invocations: this.invocations,
       count: this.count,
       time: this.time
     };
   }
 }
-
